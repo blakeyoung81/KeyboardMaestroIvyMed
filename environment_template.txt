@@ -1,0 +1,20 @@
+# Environment Variables for Keyboard Maestro Medical Workflow
+# Copy these lines to your shell profile or create a .env file
+
+# OpenAI API Key (Required)
+# Get your API key from: https://platform.openai.com/api-keys
+export OPENAI_API_KEY="your-openai-api-key-here"
+
+# Optional Image Generation Settings
+# Default values are 1024x1024, adjust as needed
+export IMG_WIDTH=1024
+export IMG_HEIGHT=1024
+
+# Optional Debug Mode
+# Set to 1 for verbose output during development
+export DEBUG=0
+
+# Usage:
+# 1. Copy this file to .env in the project root, OR
+# 2. Add these exports to your ~/.zshrc or ~/.bash_profile, OR
+# 3. Set them in your Keyboard Maestro macro before running scripts
