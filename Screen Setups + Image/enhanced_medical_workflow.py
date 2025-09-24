@@ -27,6 +27,8 @@ except ImportError:
 # Output paths
 OUT1 = "/Users/blakeyoung/Library/Mobile Documents/com~apple~CloudDocs/Coding/Keyboard Maestro/image1.png"
 OUT2 = "/Users/blakeyoung/Library/Mobile Documents/com~apple~CloudDocs/Coding/Keyboard Maestro/image2.png"
+OUT2_V2 = "/Users/blakeyoung/Library/Mobile Documents/com~apple~CloudDocs/Coding/Keyboard Maestro/image2 v2.png"
+OUT2_V3 = "/Users/blakeyoung/Library/Mobile Documents/com~apple~CloudDocs/Coding/Keyboard Maestro/image2 v3.png"
 OUT3 = "/Users/blakeyoung/Library/Mobile Documents/com~apple~CloudDocs/Coding/Keyboard Maestro/image3.png"
 HIGH_YIELD_OUT = "/Users/blakeyoung/Library/Mobile Documents/com~apple~CloudDocs/Coding/Keyboard Maestro/high_yield_info.txt"
 PATIENT_OUT = "/Users/blakeyoung/Library/Mobile Documents/com~apple~CloudDocs/Coding/Keyboard Maestro/generated_image.png"
@@ -975,8 +977,62 @@ def main():
                 found_real_image = True
                 break
     
-        if not found_real_image:
-            print("❌ No real images found with any search terms - image2.png will be skipped")
+    # Additional real images: image2 v2.png and image2 v3.png
+    print("\n🔍 Searching for additional real medical images...")
+    
+    # Generate search queries for additional images
+    additional_searches = []
+    if len(queries) > 0:
+        # Create varied search terms based on main query
+        base_term = queries[0].split()[0] if queries else "medical"
+        additional_searches = [
+            f"{base_term} anatomy diagram",
+            f"{base_term} pathology illustration", 
+            f"{base_term} medical illustration",
+            f"{base_term} clinical image",
+            f"medical {base_term} chart",
+            "medical diagram pathophysiology",
+            "anatomy medical illustration",
+            "clinical pathology diagram"
+        ]
+    
+    # Try to get image2 v2.png
+    print("🔍 Searching for image2 v2.png...")
+    found_v2 = False
+    for search_term in additional_searches[:4]:  # Use first 4 search terms
+        if found_v2:
+            break
+        print(f"🔍 Trying search: {search_term}")
+        image_url = simple_real_image_search(search_term)
+        if image_url and download_image(image_url, OUT2_V2):
+            generated_count += 1
+            print(f"✅ Additional real image downloaded (v2): {search_term}")
+            # Save backup copy to AI Generated Images directory
+            save_backup_copy(OUT2_V2, AI_IMAGES_DIR, "medical_visual", f"(v2: {search_term})")
+            found_v2 = True
+            break
+    
+    if not found_v2:
+        print("⚠️ Could not find additional image for image2 v2.png")
+    
+    # Try to get image2 v3.png with different search terms
+    print("🔍 Searching for image2 v3.png...")
+    found_v3 = False
+    for search_term in additional_searches[4:]:  # Use remaining search terms
+        if found_v3:
+            break
+        print(f"🔍 Trying search: {search_term}")
+        image_url = simple_real_image_search(search_term)
+        if image_url and download_image(image_url, OUT2_V3):
+            generated_count += 1
+            print(f"✅ Additional real image downloaded (v3): {search_term}")
+            # Save backup copy to AI Generated Images directory
+            save_backup_copy(OUT2_V3, AI_IMAGES_DIR, "medical_visual", f"(v3: {search_term})")
+            found_v3 = True
+            break
+    
+    if not found_v3:
+        print("⚠️ Could not find additional image for image2 v3.png")
     
     # Fallback strategies - only for image1 (AI generation)
     # image2 is REAL-SEARCH-ONLY, no AI fallbacks allowed
