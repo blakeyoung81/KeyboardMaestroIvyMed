@@ -7,7 +7,7 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 # Optional: export IMG_WIDTH=1024 IMG_HEIGHT=1024
 
 # Set explicit paths for better Keyboard Maestro compatibility
-VENV_PATH="$HOME/sd-venv"
+VENV_PATH="/Users/blakeyoung/Library/Mobile Documents/com~apple~CloudDocs/Coding/Keyboard Maestro/km-venv"
 SCRIPT_PATH="/Users/blakeyoung/Library/Mobile Documents/com~apple~CloudDocs/Coding/Keyboard Maestro/Clipboard2Image/gen_local.py"
 
 # Activate virtual environment
