@@ -39,6 +39,10 @@ image3.png
 high_yield_info.txt
 googleimg2.png
 
+# AI Generated backups (keep locally but don't commit)
+AI Generated Patients/
+AI Generated Images/
+
 # Logs
 *.log
 logs/

@@ -5,15 +5,83 @@ from urllib.parse import quote
 from PIL import Image
 import io
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    print("⚠️ python-dotenv not installed. Install with: pip install python-dotenv")
+    pass
+
 # ---- Config ----
 OUT = pathlib.Path("/Users/blakeyoung/Library/Mobile Documents/com~apple~CloudDocs/Coding/Keyboard Maestro/generated_image.png")
 WIDTH  = int(os.environ.get("IMG_WIDTH", 1024))
 HEIGHT = int(os.environ.get("IMG_HEIGHT", 1024))
 
+# Backup directory for patient images
+BASE_DIR = "/Users/blakeyoung/Library/Mobile Documents/com~apple~CloudDocs/Coding/Keyboard Maestro"
+AI_PATIENTS_DIR = os.path.join(BASE_DIR, "AI Generated Patients")
+
 # GPT Configuration
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")  # Set this environment variable
 GPT_MODEL = "gpt-4o-mini"  # fast and cheap
 # ---------------
+
+def get_next_backup_number(backup_dir: str, prefix: str = "") -> int:
+    """Find the next available backup number in the directory"""
+    try:
+        os.makedirs(backup_dir, exist_ok=True)
+        existing_files = os.listdir(backup_dir)
+        
+        # Find files matching the pattern (prefix + number + extension)
+        numbers = []
+        for filename in existing_files:
+            if filename.startswith(prefix):
+                # Extract number from filename like "patient_001.jpg" or "image_042.png"
+                try:
+                    # Remove prefix and extension to get the number part
+                    name_without_prefix = filename[len(prefix):]
+                    number_str = name_without_prefix.split('.')[0].lstrip('_')
+                    if number_str.isdigit():
+                        numbers.append(int(number_str))
+                except:
+                    continue
+        
+        return max(numbers) + 1 if numbers else 1
+    except Exception as e:
+        print(f"⚠️ Error finding next backup number: {e}")
+        return 1
+
+def save_backup_copy(source_file: str, backup_dir: str, prefix: str, description: str = ""):
+    """Save a backup copy of the generated image with incremental numbering"""
+    try:
+        if not os.path.exists(source_file):
+            print(f"⚠️ Source file does not exist: {source_file}")
+            return
+        
+        # Ensure backup directory exists
+        os.makedirs(backup_dir, exist_ok=True)
+        
+        # Get next available number
+        backup_num = get_next_backup_number(backup_dir, prefix)
+        
+        # Determine file extension
+        _, ext = os.path.splitext(source_file)
+        if not ext:
+            ext = '.png'  # Default extension
+        
+        # Create backup filename
+        backup_filename = f"{prefix}_{backup_num:03d}{ext}"
+        backup_path = os.path.join(backup_dir, backup_filename)
+        
+        # Copy the file
+        import shutil
+        shutil.copy2(source_file, backup_path)
+        
+        print(f"💾 Backup saved: {backup_filename} {description}")
+        
+    except Exception as e:
+        print(f"⚠️ Error saving backup: {e}")
 
 def get_text_from_clipboard():
     """Get text from clipboard"""
@@ -132,6 +200,10 @@ def generate_image_with_pollinations(prompt):
                     cleaned_image.save(OUT, 'JPEG', quality=95)
                     
                     print(f"✅ Saved clean patient image → {OUT}")
+                    
+                    # Save backup copy to AI Generated Patients directory
+                    save_backup_copy(str(OUT), AI_PATIENTS_DIR, "patient", "(From clipboard)")
+                    
                     return
                 else:
                     print(f"⚠️ HTTP {response.status_code} from endpoint {i+1}")
@@ -157,6 +229,10 @@ def generate_image_with_pollinations(prompt):
             cleaned_image = remove_pollinations_watermark(response.content)
             cleaned_image.save(OUT, 'JPEG', quality=95)
             print(f"✅ Saved clean fallback patient image → {OUT}")
+            
+            # Save backup copy to AI Generated Patients directory
+            save_backup_copy(str(OUT), AI_PATIENTS_DIR, "patient", "(Fallback from clipboard)")
+            
             return
             
     except Exception as fallback_error:

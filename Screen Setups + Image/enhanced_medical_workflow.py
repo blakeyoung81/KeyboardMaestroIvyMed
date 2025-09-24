@@ -8,6 +8,14 @@ import textwrap
 import hashlib
 import random
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    print("⚠️ python-dotenv not installed. Install with: pip install python-dotenv")
+    pass
+
 # Try to import ddgs, gracefully handle if not available
 try:
     from ddgs import DDGS
@@ -23,9 +31,70 @@ OUT3 = "/Users/blakeyoung/Library/Mobile Documents/com~apple~CloudDocs/Coding/Ke
 HIGH_YIELD_OUT = "/Users/blakeyoung/Library/Mobile Documents/com~apple~CloudDocs/Coding/Keyboard Maestro/high_yield_info.txt"
 PATIENT_OUT = "/Users/blakeyoung/Library/Mobile Documents/com~apple~CloudDocs/Coding/Keyboard Maestro/generated_image.png"
 
+# Backup directories
+BASE_DIR = "/Users/blakeyoung/Library/Mobile Documents/com~apple~CloudDocs/Coding/Keyboard Maestro"
+AI_PATIENTS_DIR = os.path.join(BASE_DIR, "AI Generated Patients")
+AI_IMAGES_DIR = os.path.join(BASE_DIR, "AI Generated Images")
+
 # OpenAI Configuration
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")  # Set this environment variable
 GPT_MODEL = "gpt-4o-mini"
+
+def get_next_backup_number(backup_dir: str, prefix: str = "") -> int:
+    """Find the next available backup number in the directory"""
+    try:
+        os.makedirs(backup_dir, exist_ok=True)
+        existing_files = os.listdir(backup_dir)
+        
+        # Find files matching the pattern (prefix + number + extension)
+        numbers = []
+        for filename in existing_files:
+            if filename.startswith(prefix):
+                # Extract number from filename like "patient_001.jpg" or "image_042.png"
+                try:
+                    # Remove prefix and extension to get the number part
+                    name_without_prefix = filename[len(prefix):]
+                    number_str = name_without_prefix.split('.')[0].lstrip('_')
+                    if number_str.isdigit():
+                        numbers.append(int(number_str))
+                except:
+                    continue
+        
+        return max(numbers) + 1 if numbers else 1
+    except Exception as e:
+        print(f"⚠️ Error finding next backup number: {e}")
+        return 1
+
+def save_backup_copy(source_file: str, backup_dir: str, prefix: str, description: str = ""):
+    """Save a backup copy of the generated image with incremental numbering"""
+    try:
+        if not os.path.exists(source_file):
+            print(f"⚠️ Source file does not exist: {source_file}")
+            return
+        
+        # Ensure backup directory exists
+        os.makedirs(backup_dir, exist_ok=True)
+        
+        # Get next available number
+        backup_num = get_next_backup_number(backup_dir, prefix)
+        
+        # Determine file extension
+        _, ext = os.path.splitext(source_file)
+        if not ext:
+            ext = '.png'  # Default extension
+        
+        # Create backup filename
+        backup_filename = f"{prefix}_{backup_num:03d}{ext}"
+        backup_path = os.path.join(backup_dir, backup_filename)
+        
+        # Copy the file
+        import shutil
+        shutil.copy2(source_file, backup_path)
+        
+        print(f"💾 Backup saved: {backup_filename} {description}")
+        
+    except Exception as e:
+        print(f"⚠️ Error saving backup: {e}")
 
 def get_clipboard_text() -> str:
     """Get text from clipboard"""
@@ -271,6 +340,10 @@ def generate_medical_visual_with_ai(query: str, out_path: str, variation_type: i
                 f.write(response.content)
             
             print(f"✅ Medical visual saved → {out_path}")
+            
+            # Save backup copy to AI Generated Images directory
+            save_backup_copy(out_path, AI_IMAGES_DIR, "medical_visual", f"({query})")
+            
             return True
         else:
             print(f"❌ Invalid response type: {response.headers.get('content-type')}")
@@ -805,6 +878,10 @@ def generate_image_with_pollinations(prompt, width=1024, height=1024):
                 f.write(response.content)
             
             print(f"✅ Patient image saved → {PATIENT_OUT}")
+            
+            # Save backup copy to AI Generated Patients directory
+            save_backup_copy(PATIENT_OUT, AI_PATIENTS_DIR, "patient", f"(Generated from medical case)")
+            
             return True
         else:
             print(f"❌ Invalid response type: {response.headers.get('content-type')}")

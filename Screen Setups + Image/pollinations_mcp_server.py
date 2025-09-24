@@ -19,6 +19,14 @@ import re
 import textwrap
 from PIL import Image, ImageDraw, ImageFont
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    print("⚠️ python-dotenv not installed. Install with: pip install python-dotenv")
+    pass
+
 # Add the mcp package to path
 sys.path.append(os.path.expanduser("~/.local/lib/python3.11/site-packages"))
 
@@ -41,8 +49,70 @@ OUT1 = "/Users/blakeyoung/Library/Mobile Documents/com~apple~CloudDocs/Coding/Ke
 OUT2 = "/Users/blakeyoung/Library/Mobile Documents/com~apple~CloudDocs/Coding/Keyboard Maestro/image2.png"
 OUT3 = "/Users/blakeyoung/Library/Mobile Documents/com~apple~CloudDocs/Coding/Keyboard Maestro/image3.png"
 HIGH_YIELD_OUT = "/Users/blakeyoung/Library/Mobile Documents/com~apple~CloudDocs/Coding/Keyboard Maestro/high_yield_info.txt"
+
+# Backup directories
+BASE_DIR = "/Users/blakeyoung/Library/Mobile Documents/com~apple~CloudDocs/Coding/Keyboard Maestro"
+AI_PATIENTS_DIR = os.path.join(BASE_DIR, "AI Generated Patients")
+AI_IMAGES_DIR = os.path.join(BASE_DIR, "AI Generated Images")
+
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")  # Set this environment variable
 GPT_MODEL = "gpt-4o-mini"
+
+def get_next_backup_number(backup_dir: str, prefix: str = "") -> int:
+    """Find the next available backup number in the directory"""
+    try:
+        os.makedirs(backup_dir, exist_ok=True)
+        existing_files = os.listdir(backup_dir)
+        
+        # Find files matching the pattern (prefix + number + extension)
+        numbers = []
+        for filename in existing_files:
+            if filename.startswith(prefix):
+                # Extract number from filename like "patient_001.jpg" or "image_042.png"
+                try:
+                    # Remove prefix and extension to get the number part
+                    name_without_prefix = filename[len(prefix):]
+                    number_str = name_without_prefix.split('.')[0].lstrip('_')
+                    if number_str.isdigit():
+                        numbers.append(int(number_str))
+                except:
+                    continue
+        
+        return max(numbers) + 1 if numbers else 1
+    except Exception as e:
+        print(f"⚠️ Error finding next backup number: {e}")
+        return 1
+
+def save_backup_copy(source_file: str, backup_dir: str, prefix: str, description: str = ""):
+    """Save a backup copy of the generated image with incremental numbering"""
+    try:
+        if not os.path.exists(source_file):
+            print(f"⚠️ Source file does not exist: {source_file}")
+            return
+        
+        # Ensure backup directory exists
+        os.makedirs(backup_dir, exist_ok=True)
+        
+        # Get next available number
+        backup_num = get_next_backup_number(backup_dir, prefix)
+        
+        # Determine file extension
+        _, ext = os.path.splitext(source_file)
+        if not ext:
+            ext = '.png'  # Default extension
+        
+        # Create backup filename
+        backup_filename = f"{prefix}_{backup_num:03d}{ext}"
+        backup_path = os.path.join(backup_dir, backup_filename)
+        
+        # Copy the file
+        import shutil
+        shutil.copy2(source_file, backup_path)
+        
+        print(f"💾 Backup saved: {backup_filename} {description}")
+        
+    except Exception as e:
+        print(f"⚠️ Error saving backup: {e}")
 
 # Create the server
 server = Server("pollinations-medical-images")
@@ -569,6 +639,9 @@ def create_pollinations_image(prompt: str, width: int = 1024, height: int = 1024
         # Save image
         with open(OUT_PATH, 'wb') as f:
             f.write(response.content)
+        
+        # Save backup copy to AI Generated Patients directory
+        save_backup_copy(str(OUT_PATH), AI_PATIENTS_DIR, "patient", "(MCP Server)")
         
         return f"✅ Image saved to {OUT_PATH}"
         

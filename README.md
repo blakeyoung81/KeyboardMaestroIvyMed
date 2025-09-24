@@ -8,6 +8,7 @@ A comprehensive automation system for generating medical education content from 
 - **GPT-Powered Analysis**: Generate High Yield medical information using GPT-4
 - **AI Image Generation**: Create patient images using Pollinations.AI
 - **Smart Image Search**: Find relevant medical diagrams from web sources
+- **🆕 Automated Backups**: All AI-generated content automatically saved with incremental numbering
 - **Keyboard Maestro Integration**: Seamless automation with macOS
 
 ## 📁 Project Structure
@@ -24,6 +25,8 @@ Keyboard Maestro/
 │   ├── pollinations_mcp_server.py   # MCP server for Pollinations.AI
 │   ├── requirements.txt             # Python dependencies
 │   └── README_DDG_Images.md         # DuckDuckGo API documentation
+├── AI Generated Patients/    # 🆕 Backup of all AI patient images (numbered)
+├── AI Generated Images/      # 🆕 Backup of all AI medical visuals (numbered)
 ├── generated_image.png      # AI-generated patient image
 ├── image1.png              # Educational diagram 1
 ├── image2.png              # Educational diagram 2  
@@ -142,6 +145,27 @@ Reliable image search implementation:
 | `image3.png` | High Yield summary | 1200×500 | Colorful summary for study |
 | `generated_image.png` | AI patient image | 1024×1024 | Realistic patient photo |
 | `high_yield_info.txt` | Text summary | - | Bottom line medical facts |
+
+## 💾 Automated Backup System
+
+All AI-generated images are automatically saved to backup directories with incremental numbering:
+
+### Patient Images (`AI Generated Patients/`)
+- **Format**: `patient_001.png`, `patient_002.png`, etc.
+- **Source**: All AI-generated patient images from Pollinations.AI
+- **Includes**: Images from clipboard workflow, full workflow, and MCP server
+
+### Medical Visuals (`AI Generated Images/`)
+- **Format**: `medical_visual_001.png`, `medical_visual_002.png`, etc.
+- **Source**: AI-generated medical diagrams and educational visuals
+- **Includes**: Anatomical diagrams, pathophysiology visuals, and clinical imagery
+
+### Features:
+- ✅ **Automatic numbering** - No overwrites, each image gets unique number
+- ✅ **Persistent storage** - All generated content saved for future reference
+- ✅ **Organized by type** - Patient images and medical visuals separated
+- ✅ **Git ignored** - Backup folders excluded from version control
+- ✅ **Cross-platform** - Works with all generation methods (clipboard, workflow, MCP)
 
 ## 🛠️ Dependencies
 
