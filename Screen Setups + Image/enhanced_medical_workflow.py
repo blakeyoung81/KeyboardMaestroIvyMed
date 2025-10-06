@@ -688,34 +688,49 @@ def create_high_yield_image(high_yield_text: str, output_path: str, width: int =
     
     # Try to load system fonts, fall back to default
     try:
-        # Try various font paths on macOS
-        font_paths = [
+        # Try to find bold and regular fonts separately
+        bold_font_paths = [
             "/System/Library/Fonts/SF-Pro-Display-Bold.otf",
+            "/System/Library/Fonts/Helvetica-Bold.ttc",
+            "/Library/Fonts/Arial Bold.ttf",
+        ]
+        
+        regular_font_paths = [
             "/System/Library/Fonts/SF-Pro-Display-Regular.otf", 
             "/System/Library/Fonts/Helvetica.ttc",
             "/Library/Fonts/Arial.ttf",
             "/System/Library/Fonts/Times.ttc"
         ]
         
-        title_font = None
+        bold_font = None
         body_font = None
         
-        for font_path in font_paths:
+        # Try to load bold font
+        for font_path in bold_font_paths:
             if os.path.exists(font_path):
                 try:
-                    title_font = ImageFont.truetype(font_path, 28)  # Smaller title for compact layout
-                    body_font = ImageFont.truetype(font_path, 24)   # Slightly larger body for readability
+                    bold_font = ImageFont.truetype(font_path, 26)
+                    break
+                except:
+                    continue
+        
+        # Try to load regular font
+        for font_path in regular_font_paths:
+            if os.path.exists(font_path):
+                try:
+                    body_font = ImageFont.truetype(font_path, 24)
                     break
                 except:
                     continue
         
         # If no system fonts found, use default
-        if not title_font:
-            title_font = ImageFont.load_default()
+        if not bold_font:
+            bold_font = ImageFont.load_default()
+        if not body_font:
             body_font = ImageFont.load_default()
             
     except Exception:
-        title_font = ImageFont.load_default()
+        bold_font = ImageFont.load_default()
         body_font = ImageFont.load_default()
     
     # Get contrasting text color based on background
@@ -728,17 +743,15 @@ def create_high_yield_image(high_yield_text: str, output_path: str, width: int =
     # Display the EXACT GPT response text (no modification)
     gpt_text = high_yield_text.strip()
     
-    # Create single line format: "Bottom Line: [text]"
-    full_text = f"Bottom Line: {gpt_text}"
-    
-    # Wrap the text to fit in the image width - targeting 1-2 lines maximum
+    # Wrap the GPT text to fit in the image width - targeting 1-2 lines maximum
+    # Account for "Bottom Line: " prefix when wrapping
     wrapper = textwrap.TextWrapper(
-        width=160,  # More characters per line for wide format
+        width=145,  # Slightly less to account for "Bottom Line: " prefix
         break_long_words=False, 
         break_on_hyphens=False,
         expand_tabs=False
     )
-    wrapped_lines = wrapper.wrap(full_text)
+    wrapped_lines = wrapper.wrap(gpt_text)
     
     # Limit to 2 lines maximum for compact display
     if len(wrapped_lines) > 2:
@@ -746,7 +759,7 @@ def create_high_yield_image(high_yield_text: str, output_path: str, width: int =
         wrapped_lines = wrapped_lines[:2]
         # Add ellipsis to last line if truncated
         if len(wrapped_lines) == 2:
-            wrapped_lines[1] = wrapped_lines[1][:155] + "..."
+            wrapped_lines[1] = wrapped_lines[1][:140] + "..."
     
     # Calculate total text height
     line_height = 35
@@ -755,15 +768,37 @@ def create_high_yield_image(high_yield_text: str, output_path: str, width: int =
     # Start position to center text vertically
     y_pos = y_center - (total_text_height // 2)
     
-    # Draw each line of text, centered horizontally
-    for line in wrapped_lines:
-        # Get text bounding box for centering this line
-        line_bbox = draw.textbbox((0, 0), line, font=body_font)
-        line_width = line_bbox[2] - line_bbox[0]
-        line_x = (width - line_width) // 2
+    # Draw each line with "Bottom Line:" in bold on first line only
+    for i, line in enumerate(wrapped_lines):
+        if i == 0:
+            # First line: Draw "Bottom Line:" in bold, then the rest in regular
+            bold_text = "Bottom Line: "
+            
+            # Calculate widths
+            bold_bbox = draw.textbbox((0, 0), bold_text, font=bold_font)
+            bold_width = bold_bbox[2] - bold_bbox[0]
+            
+            regular_text = line
+            regular_bbox = draw.textbbox((0, 0), regular_text, font=body_font)
+            regular_width = regular_bbox[2] - regular_bbox[0]
+            
+            # Total width for centering
+            total_width = bold_width + regular_width
+            start_x = (width - total_width) // 2
+            
+            # Draw bold "Bottom Line:"
+            draw.text((start_x, y_pos), bold_text, fill=text_color, font=bold_font)
+            
+            # Draw regular text after it
+            draw.text((start_x + bold_width, y_pos), regular_text, fill=text_color, font=body_font)
+        else:
+            # Continuation lines: just regular text, centered
+            line_bbox = draw.textbbox((0, 0), line, font=body_font)
+            line_width = line_bbox[2] - line_bbox[0]
+            line_x = (width - line_width) // 2
+            
+            draw.text((line_x, y_pos), line, fill=text_color, font=body_font)
         
-        # Draw the line
-        draw.text((line_x, y_pos), line, fill=text_color, font=body_font)
         y_pos += line_height
     
     # No footer needed anymore
