@@ -751,33 +751,91 @@ def create_high_yield_image(high_yield_text: str, output_path: str):
     # Get contrasting text color based on background
     text_color = get_contrasting_text_color(bg_color)
     
-    # Compact layout settings for horizontal display
-    margin = 30
+    # Compact layout settings for horizontal display with proper margins
+    horizontal_margin = 60  # Increased margins to prevent text cutoff
     y_center = height // 2  # Center vertically
+    max_text_width = width - (2 * horizontal_margin)  # Available width for text
     
     # Display the EXACT GPT response text (no modification)
     gpt_text = high_yield_text.strip()
     
-    # Wrap the GPT text to fit in the image width - targeting 1-2 lines maximum
-    # Account for "Bottom Line: " prefix when wrapping (adjusted for larger font)
-    wrapper = textwrap.TextWrapper(
-        width=115,  # Reduced for larger font size
-        break_long_words=False, 
-        break_on_hyphens=False,
-        expand_tabs=False
-    )
-    wrapped_lines = wrapper.wrap(gpt_text)
+    # Calculate "Bottom Line: " width
+    bold_text = "Bottom Line: "
+    bold_bbox = draw.textbbox((0, 0), bold_text, font=bold_font)
+    bold_width = bold_bbox[2] - bold_bbox[0]
     
-    # Limit to 2 lines maximum for compact display
-    if len(wrapped_lines) > 2:
-        # Truncate to fit in 2 lines
-        wrapped_lines = wrapped_lines[:2]
-        # Add ellipsis to last line if truncated
-        if len(wrapped_lines) == 2:
-            wrapped_lines[1] = wrapped_lines[1][:110] + "..."
+    # Smart text wrapping based on ACTUAL pixel width, not character count
+    # Maximum width for first line content (excluding "Bottom Line: ")
+    max_first_line_content_width = max_text_width - bold_width
     
-    # Calculate total text height (adjusted for larger font)
-    line_height = 50  # Increased for larger font
+    # Try to fit everything on one line first
+    full_text_bbox = draw.textbbox((0, 0), gpt_text, font=body_font)
+    full_text_width = full_text_bbox[2] - full_text_bbox[0]
+    
+    wrapped_lines = []
+    words = gpt_text.split()  # Split words for later truncation check
+    
+    if full_text_width <= max_first_line_content_width:
+        # Fits on one line!
+        wrapped_lines = [gpt_text]
+    else:
+        # Need to wrap - split into words and fit
+        current_line = []
+        
+        for word in words:
+            test_line = ' '.join(current_line + [word])
+            test_bbox = draw.textbbox((0, 0), test_line, font=body_font)
+            test_width = test_bbox[2] - test_bbox[0]
+            
+            # Check if this is the first line (needs room for "Bottom Line: ")
+            if len(wrapped_lines) == 0:
+                max_width = max_first_line_content_width
+            else:
+                max_width = max_text_width
+            
+            if test_width <= max_width:
+                current_line.append(word)
+            else:
+                # Line is full, start new line
+                if current_line:
+                    wrapped_lines.append(' '.join(current_line))
+                current_line = [word]
+                
+                # Limit to 2 lines
+                if len(wrapped_lines) >= 2:
+                    break
+        
+        # Add remaining words
+        if current_line and len(wrapped_lines) < 2:
+            wrapped_lines.append(' '.join(current_line))
+    
+    # If text was truncated, add ellipsis to last line
+    if len(words) > len(' '.join(wrapped_lines).split()):
+        if wrapped_lines:
+            # Try to add ellipsis without exceeding width
+            last_line = wrapped_lines[-1]
+            test_line = last_line + "..."
+            test_bbox = draw.textbbox((0, 0), test_line, font=body_font)
+            test_width = test_bbox[2] - test_bbox[0]
+            
+            max_width = max_text_width if len(wrapped_lines) > 1 else max_first_line_content_width
+            
+            if test_width <= max_width:
+                wrapped_lines[-1] = test_line
+            else:
+                # Remove words until ellipsis fits
+                words_in_line = last_line.split()
+                while len(words_in_line) > 1:
+                    words_in_line = words_in_line[:-1]
+                    test_line = ' '.join(words_in_line) + "..."
+                    test_bbox = draw.textbbox((0, 0), test_line, font=body_font)
+                    test_width = test_bbox[2] - test_bbox[0]
+                    if test_width <= max_width:
+                        wrapped_lines[-1] = test_line
+                        break
+    
+    # Calculate total text height
+    line_height = 50
     total_text_height = len(wrapped_lines) * line_height
     
     # Start position to center text vertically
@@ -787,19 +845,22 @@ def create_high_yield_image(high_yield_text: str, output_path: str):
     for i, line in enumerate(wrapped_lines):
         if i == 0:
             # First line: Draw "Bottom Line:" in bold, then the rest in regular
-            bold_text = "Bottom Line: "
-            
-            # Calculate widths
-            bold_bbox = draw.textbbox((0, 0), bold_text, font=bold_font)
-            bold_width = bold_bbox[2] - bold_bbox[0]
-            
             regular_text = line
             regular_bbox = draw.textbbox((0, 0), regular_text, font=body_font)
             regular_width = regular_bbox[2] - regular_bbox[0]
             
-            # Total width for centering
+            # Total width for centering (with proper margin check)
             total_width = bold_width + regular_width
-            start_x = (width - total_width) // 2
+            
+            # Ensure we stay within margins
+            if total_width > max_text_width:
+                # Should not happen with our wrapping, but safety check
+                start_x = horizontal_margin
+            else:
+                start_x = (width - total_width) // 2
+            
+            # Ensure minimum margin
+            start_x = max(start_x, horizontal_margin)
             
             # Draw bold "Bottom Line:"
             draw.text((start_x, y_pos), bold_text, fill=text_color, font=bold_font)
@@ -807,10 +868,18 @@ def create_high_yield_image(high_yield_text: str, output_path: str):
             # Draw regular text after it
             draw.text((start_x + bold_width, y_pos), regular_text, fill=text_color, font=body_font)
         else:
-            # Continuation lines: just regular text, centered
+            # Continuation lines: just regular text, centered with margin check
             line_bbox = draw.textbbox((0, 0), line, font=body_font)
             line_width = line_bbox[2] - line_bbox[0]
-            line_x = (width - line_width) // 2
+            
+            # Center but respect margins
+            if line_width > max_text_width:
+                line_x = horizontal_margin
+            else:
+                line_x = (width - line_width) // 2
+            
+            # Ensure minimum margin
+            line_x = max(line_x, horizontal_margin)
             
             draw.text((line_x, y_pos), line, fill=text_color, font=body_font)
         
