@@ -149,13 +149,13 @@ async def handle_list_tools() -> List[types.Tool]:
                     },
                     "width": {
                         "type": "integer",
-                        "description": "Image width (default: 1024)",
-                        "default": 1024
+                        "description": "Image width (default: 888, standardized)",
+                        "default": 888
                     },
                     "height": {
                         "type": "integer", 
-                        "description": "Image height (default: 1024)",
-                        "default": 1024
+                        "description": "Image height (default: 664, standardized)",
+                        "default": 664
                     },
                     "use_clipboard": {
                         "type": "boolean",
@@ -192,8 +192,8 @@ async def handle_list_tools() -> List[types.Tool]:
                     },
                     "width": {
                         "type": "integer",
-                        "description": "Image width (default: 1024)",
-                        "default": 1024
+                        "description": "Image width (default: 888, standardized)",
+                        "default": 888
                     },
                     "height": {
                         "type": "integer",
@@ -610,7 +610,7 @@ def create_high_yield_image(high_yield_text: str, output_path: str, width: int =
     
     return output_path
 
-def create_pollinations_image(prompt: str, width: int = 1024, height: int = 1024) -> str:
+def create_pollinations_image(prompt: str, width: int = 888, height: int = 664) -> str:
     """Generate image using Pollinations.AI."""
     try:
         # Ensure destination folder exists
@@ -624,10 +624,9 @@ def create_pollinations_image(prompt: str, width: int = 1024, height: int = 1024
         
         # Add size parameters if not default
         params = []
-        if width != 1024:
-            params.append(f"width={width}")
-        if height != 1024:
-            params.append(f"height={height}")
+        # Always include dimensions to ensure consistency (standardized: 888x664)
+        params.append(f"width={width}")
+        params.append(f"height={height}")
             
         if params:
             pollinations_url += "?" + "&".join(params)
@@ -678,8 +677,8 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[types.T
     
     elif name == "create_image_from_prompt":
         prompt = arguments.get("prompt", "")
-        width = arguments.get("width", 1024)
-        height = arguments.get("height", 1024)
+        width = arguments.get("width", 888)
+        height = arguments.get("height", 664)
         
         if not prompt:
             return [types.TextContent(type="text", text="❌ No prompt provided")]
@@ -688,8 +687,8 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[types.T
         return [types.TextContent(type="text", text=result)]
     
     elif name == "generate_patient_image":
-        width = arguments.get("width", 1024)
-        height = arguments.get("height", 1024)
+        width = arguments.get("width", 888)
+        height = arguments.get("height", 664)
         use_clipboard = arguments.get("use_clipboard", False)
         
         # Get medical text

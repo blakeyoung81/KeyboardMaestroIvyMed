@@ -15,8 +15,9 @@ except ImportError:
 
 # ---- Config ----
 OUT = pathlib.Path("/Users/blakeyoung/Library/Mobile Documents/com~apple~CloudDocs/Coding/Keyboard Maestro/generated_image.png")
-WIDTH  = int(os.environ.get("IMG_WIDTH", 1024))
-HEIGHT = int(os.environ.get("IMG_HEIGHT", 1024))
+# STANDARDIZED DIMENSIONS: 888x664 (consistent across all AI-generated images)
+WIDTH  = int(os.environ.get("IMG_WIDTH", 888))
+HEIGHT = int(os.environ.get("IMG_HEIGHT", 664))
 
 # Backup directory for patient images
 BASE_DIR = "/Users/blakeyoung/Library/Mobile Documents/com~apple~CloudDocs/Coding/Keyboard Maestro"
@@ -177,10 +178,9 @@ def generate_image_with_pollinations(prompt):
     
     # Add size parameters if specified
     params = []
-    if WIDTH != 1024:
-        params.append(f"width={WIDTH}")
-    if HEIGHT != 1024:
-        params.append(f"height={HEIGHT}")
+    # Always include dimensions to ensure consistency (standardized: 888x664)
+    params.append(f"width={WIDTH}")
+    params.append(f"height={HEIGHT}")
         
     param_string = "?" + "&".join(params) if params else ""
     

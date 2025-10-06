@@ -325,8 +325,9 @@ def generate_medical_visual_with_ai(query: str, out_path: str, variation_type: i
         seed = random.randint(1, 999999)
         
         # Use Pollinations.AI to generate the visual
+        # STANDARDIZED DIMENSIONS: 888x664 (consistent across all AI images)
         encoded_prompt = quote(enhanced_prompt)
-        url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=768&seed={seed}&enhance=true&nologo=true"
+        url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=888&height=664&seed={seed}&enhance=true&nologo=true"
         
         headers = {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
@@ -367,8 +368,9 @@ def generate_medical_diagram_for_search_query(query: str, out_path: str) -> bool
         seed = random.randint(100000, 999999)
         
         # Use Pollinations.AI to generate the "search result" style image
+        # STANDARDIZED DIMENSIONS: 888x664 (consistent across all AI images)
         encoded_prompt = quote(search_style_prompt)
-        url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=768&seed={seed}&enhance=true&nologo=true"
+        url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=888&height=664&seed={seed}&enhance=true&nologo=true"
         
         headers = {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
@@ -676,8 +678,14 @@ def get_contrasting_text_color(bg_color: str) -> str:
     # Use white text on dark backgrounds, black text on light backgrounds
     return '#FFFFFF' if luminance < 0.5 else '#000000'
 
-def create_high_yield_image(high_yield_text: str, output_path: str, width: int = 1920, height: int = 200):
-    """Create wide, compact colorful background image for OBS overlay - optimized for single line display"""
+def create_high_yield_image(high_yield_text: str, output_path: str):
+    """Create wide, compact colorful background image for OBS overlay - optimized for single line display
+    
+    FIXED DIMENSIONS: 1920 x 200 pixels (locked for OBS consistency)
+    """
+    # Fixed dimensions - DO NOT CHANGE (optimized for OBS overlay)
+    width = 1920
+    height = 200
     
     # Generate random background color
     bg_color = generate_random_background_color()
@@ -879,8 +887,11 @@ Format: Return a single paragraph prompt for image generation."""
         print(f"❌ Error generating patient prompt: {e}")
         return "A realistic medical patient for educational purposes"
 
-def generate_image_with_pollinations(prompt, width=1024, height=1024):
-    """Generate patient image using Pollinations.AI"""
+def generate_image_with_pollinations(prompt, width=888, height=664):
+    """Generate patient image using Pollinations.AI
+    
+    STANDARDIZED DIMENSIONS: 888x664 (consistent with all AI-generated images)
+    """
     try:
         print(f"🎨 Generating patient image with prompt: {prompt[:100]}...")
         
