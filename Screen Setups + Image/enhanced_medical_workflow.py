@@ -676,8 +676,8 @@ def get_contrasting_text_color(bg_color: str) -> str:
     # Use white text on dark backgrounds, black text on light backgrounds
     return '#FFFFFF' if luminance < 0.5 else '#000000'
 
-def create_high_yield_image(high_yield_text: str, output_path: str, width: int = 1200, height: int = 500):
-    """Create colorful background image displaying the literal GPT text response"""
+def create_high_yield_image(high_yield_text: str, output_path: str, width: int = 1920, height: int = 200):
+    """Create wide, compact colorful background image for OBS overlay - optimized for single line display"""
     
     # Generate random background color
     bg_color = generate_random_background_color()
@@ -703,8 +703,8 @@ def create_high_yield_image(high_yield_text: str, output_path: str, width: int =
         for font_path in font_paths:
             if os.path.exists(font_path):
                 try:
-                    title_font = ImageFont.truetype(font_path, 32)  # Title font
-                    body_font = ImageFont.truetype(font_path, 22)   # Body text
+                    title_font = ImageFont.truetype(font_path, 28)  # Smaller title for compact layout
+                    body_font = ImageFont.truetype(font_path, 24)   # Slightly larger body for readability
                     break
                 except:
                     continue
@@ -721,36 +721,41 @@ def create_high_yield_image(high_yield_text: str, output_path: str, width: int =
     # Get contrasting text color based on background
     text_color = get_contrasting_text_color(bg_color)
     
-    # Layout settings
-    margin = 50
-    y_pos = 60
-    line_height = 30
-    
-    # Title: "Bottom Line:"
-    title_text = "Bottom Line:"
-    
-    # Get text bounding box for centering
-    title_bbox = draw.textbbox((0, 0), title_text, font=title_font)
-    title_width = title_bbox[2] - title_bbox[0]
-    title_x = (width - title_width) // 2
-    
-    # Draw title
-    draw.text((title_x, y_pos), title_text, fill=text_color, font=title_font)
-    y_pos += 80  # Space after title
+    # Compact layout settings for horizontal display
+    margin = 30
+    y_center = height // 2  # Center vertically
     
     # Display the EXACT GPT response text (no modification)
     gpt_text = high_yield_text.strip()
     
-    # Wrap the text to fit in the image width
+    # Create single line format: "Bottom Line: [text]"
+    full_text = f"Bottom Line: {gpt_text}"
+    
+    # Wrap the text to fit in the image width - targeting 1-2 lines maximum
     wrapper = textwrap.TextWrapper(
-        width=85,  # Characters per line
+        width=160,  # More characters per line for wide format
         break_long_words=False, 
         break_on_hyphens=False,
         expand_tabs=False
     )
-    wrapped_lines = wrapper.wrap(gpt_text)
+    wrapped_lines = wrapper.wrap(full_text)
     
-    # Draw each line of the GPT response, centered
+    # Limit to 2 lines maximum for compact display
+    if len(wrapped_lines) > 2:
+        # Truncate to fit in 2 lines
+        wrapped_lines = wrapped_lines[:2]
+        # Add ellipsis to last line if truncated
+        if len(wrapped_lines) == 2:
+            wrapped_lines[1] = wrapped_lines[1][:155] + "..."
+    
+    # Calculate total text height
+    line_height = 35
+    total_text_height = len(wrapped_lines) * line_height
+    
+    # Start position to center text vertically
+    y_pos = y_center - (total_text_height // 2)
+    
+    # Draw each line of text, centered horizontally
     for line in wrapped_lines:
         # Get text bounding box for centering this line
         line_bbox = draw.textbbox((0, 0), line, font=body_font)
@@ -760,15 +765,6 @@ def create_high_yield_image(high_yield_text: str, output_path: str, width: int =
         # Draw the line
         draw.text((line_x, y_pos), line, fill=text_color, font=body_font)
         y_pos += line_height
-        
-        # If we're running out of space, truncate gracefully
-        if y_pos > height - 80:
-            # Add ellipsis if text is cut off
-            ellipsis_bbox = draw.textbbox((0, 0), "...", font=body_font)
-            ellipsis_width = ellipsis_bbox[2] - ellipsis_bbox[0]
-            ellipsis_x = (width - ellipsis_width) // 2
-            draw.text((ellipsis_x, y_pos), "...", fill=text_color, font=body_font)
-            break
     
     # No footer needed anymore
     
@@ -1056,7 +1052,7 @@ def main():
     print(f"\n✅ Enhanced Medical Workflow Complete!")
     print(f"📊 Results:")
     print(f"   • High Yield text: {HIGH_YIELD_OUT}")
-    print(f"   • Bottom Line image (1200x500): {OUT3}")
+    print(f"   • Bottom Line image (1920x200 - OBS optimized): {OUT3}")
     print(f"   • Educational content generated: {generated_count}/2")
     if generated_count > 0:
         print(f"     - image1.png: AI-generated medical visual (no text)")
