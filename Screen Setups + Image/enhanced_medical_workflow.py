@@ -688,48 +688,55 @@ def create_high_yield_image(high_yield_text: str, output_path: str, width: int =
     
     # Try to load system fonts, fall back to default
     try:
-        # Try to find bold and regular fonts separately
-        bold_font_paths = [
-            "/System/Library/Fonts/SF-Pro-Display-Bold.otf",
-            "/System/Library/Fonts/Helvetica-Bold.ttc",
-            "/Library/Fonts/Arial Bold.ttf",
-        ]
-        
-        regular_font_paths = [
-            "/System/Library/Fonts/SF-Pro-Display-Regular.otf", 
-            "/System/Library/Fonts/Helvetica.ttc",
-            "/Library/Fonts/Arial.ttf",
-            "/System/Library/Fonts/Times.ttc"
-        ]
-        
         bold_font = None
         body_font = None
         
-        # Try to load bold font
-        for font_path in bold_font_paths:
-            if os.path.exists(font_path):
+        # Try HelveticaNeue.ttc with different font indices (Bold is usually index 1)
+        helvetica_neue_path = "/System/Library/Fonts/HelveticaNeue.ttc"
+        if os.path.exists(helvetica_neue_path):
+            try:
+                # Index 1 is typically Bold in HelveticaNeue.ttc
+                bold_font = ImageFont.truetype(helvetica_neue_path, 42, index=1)
+                # Index 0 is typically Regular
+                body_font = ImageFont.truetype(helvetica_neue_path, 38, index=0)
+                print(f"✅ Loaded HelveticaNeue Bold (index 1) and Regular (index 0)")
+            except Exception as e:
+                print(f"⚠️ HelveticaNeue TTC index loading failed: {e}")
+                # Fallback to using same font with larger size for "bold"
                 try:
-                    bold_font = ImageFont.truetype(font_path, 26)
-                    break
+                    bold_font = ImageFont.truetype(helvetica_neue_path, 44)
+                    body_font = ImageFont.truetype(helvetica_neue_path, 38)
+                    print(f"✅ Loaded HelveticaNeue (same weight, different sizes)")
                 except:
-                    continue
+                    pass
         
-        # Try to load regular font
-        for font_path in regular_font_paths:
-            if os.path.exists(font_path):
+        # Fallback to Helvetica.ttc if HelveticaNeue didn't work
+        if not bold_font or not body_font:
+            helvetica_path = "/System/Library/Fonts/Helvetica.ttc"
+            if os.path.exists(helvetica_path):
                 try:
-                    body_font = ImageFont.truetype(font_path, 24)
-                    break
-                except:
-                    continue
+                    # Index 1 is typically Bold in Helvetica.ttc
+                    bold_font = ImageFont.truetype(helvetica_path, 42, index=1)
+                    body_font = ImageFont.truetype(helvetica_path, 38, index=0)
+                    print(f"✅ Loaded Helvetica Bold (index 1) and Regular (index 0)")
+                except Exception as e:
+                    print(f"⚠️ Helvetica TTC index loading failed: {e}")
+                    # Fallback to same font different sizes
+                    try:
+                        bold_font = ImageFont.truetype(helvetica_path, 44)
+                        body_font = ImageFont.truetype(helvetica_path, 38)
+                        print(f"✅ Loaded Helvetica (same weight, different sizes)")
+                    except:
+                        pass
         
-        # If no system fonts found, use default
+        # Final fallback to default fonts
         if not bold_font:
             bold_font = ImageFont.load_default()
         if not body_font:
             body_font = ImageFont.load_default()
             
-    except Exception:
+    except Exception as e:
+        print(f"❌ Font loading exception: {e}")
         bold_font = ImageFont.load_default()
         body_font = ImageFont.load_default()
     
@@ -744,9 +751,9 @@ def create_high_yield_image(high_yield_text: str, output_path: str, width: int =
     gpt_text = high_yield_text.strip()
     
     # Wrap the GPT text to fit in the image width - targeting 1-2 lines maximum
-    # Account for "Bottom Line: " prefix when wrapping
+    # Account for "Bottom Line: " prefix when wrapping (adjusted for larger font)
     wrapper = textwrap.TextWrapper(
-        width=145,  # Slightly less to account for "Bottom Line: " prefix
+        width=115,  # Reduced for larger font size
         break_long_words=False, 
         break_on_hyphens=False,
         expand_tabs=False
@@ -759,10 +766,10 @@ def create_high_yield_image(high_yield_text: str, output_path: str, width: int =
         wrapped_lines = wrapped_lines[:2]
         # Add ellipsis to last line if truncated
         if len(wrapped_lines) == 2:
-            wrapped_lines[1] = wrapped_lines[1][:140] + "..."
+            wrapped_lines[1] = wrapped_lines[1][:110] + "..."
     
-    # Calculate total text height
-    line_height = 35
+    # Calculate total text height (adjusted for larger font)
+    line_height = 50  # Increased for larger font
     total_text_height = len(wrapped_lines) * line_height
     
     # Start position to center text vertically
